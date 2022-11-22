@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>スペース速度計測</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi"
+    crossorigin="anonymous">
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="body-element">
+  <div class="modal fade" id="close-modal" data-bs-backdrop="static"
+    data-bs-keyboard="false" tabindex="-1" aria-labelledby="closeTitleLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="closeTitleLabel">閉じますか?</h1>
+          <button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          とくになにもないよ^^
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-seconary" data-bs-dismiss="modal" id="close">閉じる</button>
+          <button class="btn btn-primary" data-bs-dismiss="modal">閉じない</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <section class="py-5">
+    <div class="container text-center">
+      <h1 class="fs-1 py-4">スペースキー速度テスト</h1>
+      <div class="card my-3 mx-auto" style="max-width: 40rem;">
+        <div class="card-body">
+          <h3 class="card-title fs-3">速度テスト</h3>
+          <p class="card-text">
+            下の四角でスペースキーを押すと開始されます。時間は
+            <select class="form-select d-inline" id="times" style="width: 5rem;">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="30">30</option>
+              <option value="60">60</option>
+            </select>
+            秒です。
+          </p>
+          <div id="not-started" tabindex="-1">
+            <div
+              class="card space mx-auto d-flex justify-content-center align-items-center fs-4">
+              スタート
+            </div>
+          </div>
+          <div id="started" tabindex="-1" hidden>
+            <div
+              class="card space mx-auto d-flex justify-content-center align-items-center fs-4"
+              id="timer"></div>
+          </div>
+          <div id="result" hidden>
+            <h4 class="fs-4">結果</h4>
+            <div id="rate"></div>
+            <div id="rate-desc"></div>
+            <button class="btn btn-primary mt-4" id="take-screenshot">
+              スクショを撮る
+            </button>
+            <button class="btn btn-secondary mt-4" data-bs-toggle="modal"
+              data-bs-target="#close-modal">
+              閉じる
+            </button>
+          </div>
+        </div>
+        <div class="card-footer">
+          <canvas id="myChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="https://superal.github.io/canvas2image/canvas2image.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+
+    const ctx = document.getElementById('myChart');
+
+    const myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'クリックの速さ(毎秒)',
+          data: [],
+          borderWidth: 1,
+          borderColor: '#944BBB',
+          backgroundColor: '#9BD0F5',
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    const notStarted = document.getElementById('not-started');
+    const started = document.getElementById('started');
+    const result = document.getElementById('result');
+
+    let pressedAmount = 0;
+    let rate;
+    let rateDesc;
+    let timerNum;
+
+    const updateData = (/**@type {String|Number} */ data) => {
+      myChart.data.datasets.forEach((dataset) => {
+        dataset.data.push(data);
+      });
+
+      myChart.update();
+    }
+
+    const takeScreenshot = () => {
+      html2canvas(document.querySelector('#result'), {
+        onrendered: function (/**@type {HTMLCanvasElement} */canvas) {
+          return Canvas2Image.saveAsPNG(canvas);
+        }
+      });
+    };
+
+    const close = () => {
+      notStarted.removeAttribute('hidden');
+      started.setAttribute('hidden', 'hidden');
+      result.setAttribute('hidden', 'hidden');
+
+      pressedAmount = 0;
+      rate = undefined;
+      rateDesc = undefined;
+
+      for (let i = 0; i = myChart.data.datasets[0].data.length; i++) {
+        myChart.data.datasets[0].data.pop();
+      }
+
+      for (let i = 0; i = myChart.data.labels.length; i++) {
+        myChart.data.labels.pop();
+      }
+
+      myChart.update();
+    }
+
+    document.getElementById('take-screenshot').addEventListener('click', () => takeScreenshot());
+
+    document.getElementById('close').addEventListener('click', () => close());
+
+    notStarted.addEventListener('keydown', (e) => {
+      if (e.key !== ' ') return;
+
+      notStarted.setAttribute('hidden', 'hidden');
+      started.removeAttribute('hidden');
+
+      timerNum = Number(document.getElementById('times').value);
+
+      document.getElementById('timer').textContent = timerNum;
+
+      const timerInterval = setInterval(() => {
+        timerNum--;
+        document.getElementById('timer').textContent = timerNum;
+
+        updateData(pressedAmount / (Number(document.getElementById('times').value) - timerNum + 1));
+
+        myChart.data.labels.push(Number(document.getElementById('times').value) - timerNum);
+
+        if (timerNum == 0) {
+          clearInterval(timerInterval);
+
+          started.setAttribute('hidden', 'hidden');
+          result.removeAttribute('hidden');
+
+          let rates = [
+            'カメ', '一般人', 'ゲーマー', 'プロゲーマー', '天才', '自動クリッカー'
+          ]
+
+          let resultNum = pressedAmount / Number(document.getElementById('times').value);
+
+          if (resultNum <= 0.1) rate = rates[0]
+          else if (resultNum <= 3) rate = rates[1]
+          else if (resultNum <= 30) rate = rates[2]
+          else if (resultNum <= 50) rate = rates[3]
+          else if (resultNum <= 90) rate = rates[4]
+          else if (resultNum == 1000) rate = rates[5]
+
+          document.getElementById('rate').textContent = rate;
+
+          let nextOfRate;
+
+          rates.forEach((item, index) => {
+            if (rate === rates[5]) return;
+            if (rate === rates[index]) nextOfRate = rates[index + 1];
+          });
+
+          rate === rates[5] ? rateDesc = `あなたは${pressedAmount}回(${resultNum}毎秒)ぶんスペースキーを押しました。つまり、あなたはゲームの限界へと突入しました。あなたはこのゲームのすぺてをクリアしたということです。おめでとうございます!` : rateDesc = `あなたは${pressedAmount}回(${resultNum}毎秒)ぶんスペースキーを押しました。まだまだ遅いですね。${nextOfRate}に行けるように頑張りましょう!`;
+
+          document.getElementById('rate-desc').textContent = rateDesc;
+        }
+      }, 1000);
+
+
+
+      started.focus();
+    });
+
+    started.addEventListener('keydown', (e) => {
+      if (e.key !== ' ') return;
+
+      pressedAmount++;
+
+      console.log(pressedAmount);
+    });
+  </script>
+</body>
+</html>

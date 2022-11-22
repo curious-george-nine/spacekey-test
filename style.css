@@ -1,0 +1,9 @@
+.space {
+  width: 20rem;
+  height: 20rem;
+  cursor: pointer;
+}
+
+#started:focus {
+  outline: none;
+}
